@@ -125,7 +125,7 @@ public class NotificationHelper {
               @Override
               public void onFailure(NimbeesException e) {
                 Toast.makeText(mMainActivity, "ERROR Requesting Location", Toast.LENGTH_SHORT).show();
-                  Log.e("HEATMAP", "ERROR Requesting Location" );
+                  Log.e("HEATMAP", "ERROR Requesting Location" + e.getMessage());
               }
             });
   }
