@@ -114,7 +114,8 @@ public class NotificationHelper {
 
     // 3. Now we send the Json formed String to the method sendMessage.
     NimbeesClient.getNotificationManager()
-        .sendNotification(requestLocationMsg, MessageContent.NotificationType.CUSTOM, filters,
+        //.sendNotification(requestLocationMsg, MessageContent.NotificationType.CUSTOM, filters,
+            .sendNotification(requestLocationMsg, MessageContent.NotificationType.CUSTOM, null,
             new NimbeesCallback<Integer>() {
               @Override
               public void onSuccess(Integer integer) {
@@ -152,7 +153,8 @@ public class NotificationHelper {
 
     // 3. Now we send the Json formed String to the method sendMessage.
     NimbeesClient.getNotificationManager()
-            .sendNotification(locationsMsg, MessageContent.NotificationType.CUSTOM, filters,
+            //.sendNotification(locationsMsg, MessageContent.NotificationType.CUSTOM, filters,
+            .sendNotification(locationsMsg, MessageContent.NotificationType.CUSTOM, null,
                     new NimbeesCallback<Integer>() {
                       @Override
                       public void onSuccess(Integer integer) {

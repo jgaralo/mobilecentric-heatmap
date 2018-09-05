@@ -17,9 +17,13 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.TimeZone;
 
+import es.unex.geoapp.model.LocationBeanRealm;
 import es.unex.geoapp.model.LocationFrequency;
+import es.unex.geoapp.model.MyModule;
+import es.unex.geoapp.model.MyOtherModule;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
+import io.realm.RealmResults;
 
 /**
  * Created by Javier on 11/10/2017.
@@ -31,8 +35,45 @@ public class LocationManager {
 
     public static List<LocationFrequency> getLocationHistory(Date begin, Date end, double latitude, double longitude, double radius){
 
+        /*List <LocationFrequency> locs = aggreateLocations(
+                filterLocation(convertNimbeesLocations(NimbeesClient.getLocationManager().getLocationHistory(begin, end)), latitude, longitude, radius));*/
+
         List <LocationFrequency> locs = aggreateLocations(
-                filterLocation(convertNimbeesLocations(NimbeesClient.getLocationManager().getLocationHistory(begin, end)), latitude, longitude, radius));
+                filterLocation(convertLocations(getLocationHistory(begin, end)), latitude, longitude, radius));
+
+        return locs;
+    }
+
+    public static List <LocationFrequency> convertLocations ( List<LocationBeanRealm> locs){
+        //Log.i("HEATMAP-CONVERSION"," - Convirtiendo localizaciones...");
+        List <LocationFrequency> locationFreqs = new ArrayList<LocationFrequency>();
+        for (LocationBeanRealm l: locs ) {
+            LocationFrequency lFrequency = new LocationFrequency(l.getLat(), l.getLng(), 1);
+            //Log.e("HEATMAP", nimLoc.getLatitude() + " " + nimLoc.getLongitude() + " " + nimLoc.getStartDate()+ " " + nimLoc.getEndDate());
+            locationFreqs.add(lFrequency);
+        }
+        return locationFreqs;
+    }
+
+    public static List<LocationBeanRealm> getLocationHistory(Date begin, Date end){
+        //Log.i("HEATMAP-QUERY"," - Buscando localizaciones...");
+        RealmConfiguration config = new RealmConfiguration.Builder()
+                .modules(new MyModule())
+                .name("Database.realm")
+                .deleteRealmIfMigrationNeeded()
+                .build();
+        Realm realm= Realm.getInstance(config);
+        RealmResults<LocationBeanRealm> locations = realm.where(LocationBeanRealm.class)
+                .greaterThanOrEqualTo("timestamp", begin)
+                .lessThan("timestamp", end)
+                .findAll();
+
+        //Log.i("HEATMAP-ENCONTRADAS="," - " + String.valueOf(locations.size()));
+        List<LocationBeanRealm> locs = new ArrayList<LocationBeanRealm>();
+        for(LocationBeanRealm l : locations){
+            locs.add(l);
+            //Log.i("HEATMAP-ENCONTRADA"," ->"+l.toString());
+        }
         return locs;
     }
 
@@ -149,7 +190,9 @@ public class LocationManager {
 
     public static void storeLocations(List<LocationFrequency> locationList) {
         RealmConfiguration config = new RealmConfiguration.Builder()
+                .modules(new MyOtherModule())
                 .name("heatmap.realm")
+                .deleteRealmIfMigrationNeeded()
                 .build();
         Realm realm= Realm.getInstance(config);
         if(!LocationManager.mapFinishedFlag) {
@@ -166,7 +209,9 @@ public class LocationManager {
         LocationManager.mapFinishedFlag=true;
 
         RealmConfiguration config = new RealmConfiguration.Builder()
+                .modules(new MyOtherModule())
                 .name("heatmap.realm")
+                .deleteRealmIfMigrationNeeded()
                 .build();
         Realm realm= Realm.getInstance(config);
         realm.beginTransaction();
@@ -178,7 +223,9 @@ public class LocationManager {
 
     public static void clearLocations() {
         RealmConfiguration config = new RealmConfiguration.Builder()
+                .modules(new MyOtherModule())
                 .name("heatmap.realm")
+                .deleteRealmIfMigrationNeeded()
                 .build();
         Realm realm= Realm.getInstance(config);
         realm.beginTransaction();
