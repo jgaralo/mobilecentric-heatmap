@@ -14,7 +14,7 @@ import java.util.TimerTask;
 
 import es.unex.geoapp.model.LocationBeanRealm;
 //import es.unex.geoapp.rest.IPostDataService;
-import es.unex.geoapp.model.MyModule;
+import es.unex.geoapp.model.LocationBeanRealmModule;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
 /*
@@ -114,7 +114,7 @@ public class LocationService extends Service {
             try {
                 Realm.init(this);
                 RealmConfiguration realmConfiguration = new RealmConfiguration.Builder()
-                        .modules(new MyModule())
+                        .modules(new LocationBeanRealmModule())
                         .name("Database.realm")
                         .deleteRealmIfMigrationNeeded()
                         .build();

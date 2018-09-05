@@ -1,26 +1,20 @@
 package es.unex.geoapp.locationmanager;
 
 import android.graphics.PointF;
-import android.location.Location;
-import android.util.Log;
 
-import com.nimbees.platform.NimbeesClient;
 import com.nimbees.platform.beans.NimbeesLocation;
 
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.List;
-import java.util.TimeZone;
 
 import es.unex.geoapp.model.LocationBeanRealm;
 import es.unex.geoapp.model.LocationFrequency;
-import es.unex.geoapp.model.MyModule;
-import es.unex.geoapp.model.MyOtherModule;
+import es.unex.geoapp.model.LocationBeanRealmModule;
+import es.unex.geoapp.model.LocationFrequencyModule;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
 import io.realm.RealmResults;
@@ -58,7 +52,7 @@ public class LocationManager {
     public static List<LocationBeanRealm> getLocationHistory(Date begin, Date end){
         //Log.i("HEATMAP-QUERY"," - Buscando localizaciones...");
         RealmConfiguration config = new RealmConfiguration.Builder()
-                .modules(new MyModule())
+                .modules(new LocationBeanRealmModule())
                 .name("Database.realm")
                 .deleteRealmIfMigrationNeeded()
                 .build();
@@ -190,7 +184,7 @@ public class LocationManager {
 
     public static void storeLocations(List<LocationFrequency> locationList) {
         RealmConfiguration config = new RealmConfiguration.Builder()
-                .modules(new MyOtherModule())
+                .modules(new LocationFrequencyModule())
                 .name("heatmap.realm")
                 .deleteRealmIfMigrationNeeded()
                 .build();
@@ -209,7 +203,7 @@ public class LocationManager {
         LocationManager.mapFinishedFlag=true;
 
         RealmConfiguration config = new RealmConfiguration.Builder()
-                .modules(new MyOtherModule())
+                .modules(new LocationFrequencyModule())
                 .name("heatmap.realm")
                 .deleteRealmIfMigrationNeeded()
                 .build();
@@ -223,7 +217,7 @@ public class LocationManager {
 
     public static void clearLocations() {
         RealmConfiguration config = new RealmConfiguration.Builder()
-                .modules(new MyOtherModule())
+                .modules(new LocationFrequencyModule())
                 .name("heatmap.realm")
                 .deleteRealmIfMigrationNeeded()
                 .build();
