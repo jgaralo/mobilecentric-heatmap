@@ -15,6 +15,7 @@ import android.widget.EditText;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.facebook.stetho.Stetho;
 import com.gc.materialdesign.views.ButtonRectangle;
@@ -33,6 +34,11 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.TileOverlay;
 import com.google.android.gms.maps.model.TileOverlayOptions;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
+import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.maps.android.heatmaps.HeatmapTileProvider;
 import com.google.maps.android.heatmaps.WeightedLatLng;
 import com.nimbees.platform.NimbeesClient;
@@ -40,6 +46,9 @@ import com.nimbees.platform.NimbeesException;
 import com.nimbees.platform.location.NimbeesLocationManager;
 import com.uphyca.stetho_realm.RealmInspectorModulesProvider;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -51,6 +60,10 @@ import es.unex.geoapp.locationmanager.LocationService;
 import es.unex.geoapp.locationmanager.PermissionManager;
 import es.unex.geoapp.messagemanager.NotificationHelper;
 import es.unex.geoapp.model.LocationFrequency;
+import es.unex.geoapp.retrofit.APIService;
+import es.unex.geoapp.retrofit.Common;
+import es.unex.geoapp.retrofit.NotificationFirebase;
+import es.unex.geoapp.retrofit.Sender;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
 import io.realm.RealmResults;
@@ -122,6 +135,17 @@ public class MainActivity extends AppCompatActivity {
     private int startYear=0, startMonth, startDay, startHour, startMinute;
     private int endYear=0, endMonth, endDay, endHour, endMinute;
     private TileOverlay tileOverlay;
+
+
+    private static final String TAG = "TokenFirebase";
+
+    private static String topic = "heatmap";
+
+
+    private String token;
+
+
+
 
 
     @Override
@@ -220,8 +244,77 @@ public class MainActivity extends AppCompatActivity {
             }
         });*/
 
+        /*******TEST FIREBASE SERVICE, send to TOPIC 'heatmap'********/
+        getTokenFirebase();
+        subscribeTopicFirebase();
+        Common.currentToken=token;
+//
+//        apiService=Common.getFCMClient();
+//
+//        NotificationFirebase notification= new NotificationFirebase("Title", "msg topic");
+//        Sender sender= new Sender(topicURL, notification);
+//        apiService.sendNotification(sender).enqueue(new Callback<MyResponse>() {
+//            @Override
+//            public void onResponse(Call<MyResponse> call, Response<MyResponse> response) {
+//              //  if(response.body().success==1){
+//                    Toast.makeText(MainActivity.this,"Success", Toast.LENGTH_SHORT).show();
+////                }else{
+////                    Toast.makeText(MainActivity.this,"Failed", Toast.LENGTH_SHORT).show();
+////                }
+//
+//            }
+//
+//            @Override
+//            public void onFailure(Call<MyResponse> call, Throwable throwable) {
+//                Log.e("ERROR", throwable.getMessage());
+//            }
+//        });
+
+        /*************************************************************/
+
 
     }
+
+    /*
+     * Called to subscribed in topic or check if the device is subscribed in topic.
+     */
+
+    private void subscribeTopicFirebase() {
+
+        FirebaseMessaging.getInstance().subscribeToTopic(topic)
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        String msg = getString(R.string.msg_subscribed);
+                        if (!task.isSuccessful()) {
+                            msg = getString(R.string.msg_subscribe_failed);
+                        }
+
+                        Log.d("Topic Information", msg);
+                        Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    /*
+     * Gets token of the device and saved in the private variable 'token'.
+     */
+    private void getTokenFirebase() {
+        FirebaseInstanceId.getInstance().getInstanceId()
+                .addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
+                    @Override
+                    public void onComplete(@NonNull Task<InstanceIdResult> task) {
+                        if (!task.isSuccessful()) {
+                            Log.w(TAG, "getInstanceId failed", task.getException());
+                            return;
+                        }
+                        token = task.getResult().getToken();
+                        Log.d(TAG, token);
+
+                    }
+                });
+    }
+
 
     /**
      * Util of Android to pick an Gmail user account stored in the device.
@@ -334,9 +427,6 @@ public class MainActivity extends AppCompatActivity {
         this.endMinute=minute;
     }
 
-    public void sendMessage(){
-        nHelper.sendRequestLocationMessage(RADIUS, mLocation, new Date(), new Date());
-    }
 
     public void getHeatMap(){
         LocationManager.clearLocations();
@@ -365,6 +455,8 @@ public class MainActivity extends AppCompatActivity {
             calendar.set(Calendar.HOUR_OF_DAY, startHour);
             calendar.set(Calendar.MINUTE, startMinute);
             Date startDate = calendar.getTime();
+
+
             calendar.clear();
             calendar.set(Calendar.YEAR, endYear);
             calendar.set(Calendar.MONTH, endMonth);
@@ -372,8 +464,12 @@ public class MainActivity extends AppCompatActivity {
             calendar.set(Calendar.HOUR_OF_DAY, endHour);
             calendar.set(Calendar.MINUTE, endMinute);
             Date endDate = calendar.getTime();
+
+
+
             if(startDate.before(endDate)) {
-                nHelper.sendRequestLocationMessage(RADIUS, mLocation, startDate, endDate);
+                nHelper.sendRequestLocationMessage(token, RADIUS, mLocation, startDate, endDate);
+
                 LocationManager.mapFinishedFlag = false;
                 Log.e("HEATMAP", "MensajeSend");
 
