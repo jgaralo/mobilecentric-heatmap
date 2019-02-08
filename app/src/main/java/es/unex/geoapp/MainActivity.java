@@ -1,12 +1,19 @@
 package es.unex.geoapp;
 
-import android.accounts.AccountManager;
+import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Handler;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.DialogFragment;
 import android.support.annotation.NonNull;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -21,12 +28,11 @@ import com.facebook.stetho.Stetho;
 import com.gc.materialdesign.views.ButtonRectangle;
 import com.gc.materialdesign.views.Slider;
 import com.gc.materialdesign.widgets.SnackBar;
-import com.google.android.gms.auth.GoogleAuthUtil;
-import com.google.android.gms.common.AccountPicker;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
@@ -41,34 +47,24 @@ import com.google.firebase.iid.InstanceIdResult;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.maps.android.heatmaps.HeatmapTileProvider;
 import com.google.maps.android.heatmaps.WeightedLatLng;
-import com.nimbees.platform.NimbeesClient;
-import com.nimbees.platform.NimbeesException;
-import com.nimbees.platform.location.NimbeesLocationManager;
 import com.uphyca.stetho_realm.RealmInspectorModulesProvider;
 
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
 import es.unex.geoapp.datemanager.DatePickerFragment;
+import es.unex.geoapp.locationmanager.GPSTracker;
 import es.unex.geoapp.locationmanager.LocationManager;
 import es.unex.geoapp.locationmanager.LocationService;
 import es.unex.geoapp.locationmanager.PermissionManager;
 import es.unex.geoapp.messagemanager.NotificationHelper;
 import es.unex.geoapp.model.LocationFrequency;
-import es.unex.geoapp.retrofit.APIService;
-import es.unex.geoapp.retrofit.Common;
-import es.unex.geoapp.retrofit.NotificationFirebase;
-import es.unex.geoapp.retrofit.Sender;
 import io.realm.Realm;
-import io.realm.RealmConfiguration;
-import io.realm.RealmResults;
 
 public class MainActivity extends AppCompatActivity {
+
     /**
      * Request Google Accounts.
      */
@@ -126,26 +122,24 @@ public class MainActivity extends AppCompatActivity {
     private Circle mCircle;
 
     /**
-     * Tracking servie
+     * Tracking service
      */
     private Intent locationIntent = null;
 
     private NotificationHelper nHelper;
 
-    private int startYear=0, startMonth, startDay, startHour, startMinute;
-    private int endYear=0, endMonth, endDay, endHour, endMinute;
+    private int startYear = 0, startMonth, startDay, startHour, startMinute;
+    private int endYear = 0, endMonth, endDay, endHour, endMinute;
     private TileOverlay tileOverlay;
 
-
-    private static final String TAG = "TokenFirebase";
+    /**
+     * Firebase service
+     */
+    private static final String TAG = "Firebase Token";
 
     private static String topic = "heatmap";
 
-
     private String token;
-
-
-
 
 
     @Override
@@ -161,15 +155,15 @@ public class MainActivity extends AppCompatActivity {
                                 .build()).build());
 
 
-
         tileOverlay = null;
         nHelper = new NotificationHelper(this);
+
 
         if (locationIntent == null) {
             locationIntent = new Intent(this, LocationService.class);
         }
         // check location permission
-        if (PermissionManager.checkPermissions(this, MainActivity.this)){
+        if (PermissionManager.checkPermissions(this, MainActivity.this)) {
             startService(locationIntent);
         }
 
@@ -178,21 +172,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
-        // We check here if the NimbeesClient have data from the user or not to call register.
-        if (NimbeesClient.getUserManager().getUserData() == null) {
-            showGoogleAccountPicker();
-        } /*else {
-            //mTextViewEmail.setText("User: " + NimbeesClient.getUserManager().getUserData().getAlias());
-        }*/
-
-        // Start the Nimbees Client user tracking service
-        //NimbeesClient.getPermissionManager().checkPermissions(this);
-
-/*        if(NimbeesClient.getPermissionManager().getLocationPermissionState(getApplicationContext())){
-            NimbeesClient.getLocationManager().startTracking(60,60);
-        }*/
-
-        /*mTextViewDistance = (TextView) findViewById(R.id.textViewDistance);
+        mTextViewDistance = (TextView) findViewById(R.id.textViewDistance);
         mSlider = (Slider) findViewById(R.id.seekBar);
         // This Listener change the value in the distance field and draw the new circle with the given radius
         mSlider.setOnValueChangedListener(new Slider.OnValueChangedListener() {
@@ -205,7 +185,7 @@ public class MainActivity extends AppCompatActivity {
                 // Update the global variable RADIUS with the new value
                 RADIUS = i;
             }
-        });*/
+        });
 
         mButtonSend = (ButtonRectangle) findViewById(R.id.buttonSend);
         // This Listener call sendMessage on press button with radius and message
@@ -220,13 +200,12 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        /*((MapFragment) getFragmentManager().findFragmentById(R.id.map)).getMapAsync(new OnMapReadyCallback() {
+        ((MapFragment) getFragmentManager().findFragmentById(R.id.map)).getMapAsync(new OnMapReadyCallback() {
             @Override
             public void onMapReady(GoogleMap googleMap) {
                 mGoogleMap = googleMap;
-                if(NimbeesClient.getPermissionManager().getLocationPermissionState(getApplicationContext())){
-                    getLocation();
-                }
+                setUpMap();
+
 
                 mGoogleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
                     @Override
@@ -242,45 +221,50 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
             }
-        });*/
+        });
 
-        /*******TEST FIREBASE SERVICE, send to TOPIC 'heatmap'********/
+        /*
+         * Firebase Service
+         */
         getTokenFirebase();
         subscribeTopicFirebase();
-        Common.currentToken=token;
-//
-//        apiService=Common.getFCMClient();
-//
-//        NotificationFirebase notification= new NotificationFirebase("Title", "msg topic");
-//        Sender sender= new Sender(topicURL, notification);
-//        apiService.sendNotification(sender).enqueue(new Callback<MyResponse>() {
-//            @Override
-//            public void onResponse(Call<MyResponse> call, Response<MyResponse> response) {
-//              //  if(response.body().success==1){
-//                    Toast.makeText(MainActivity.this,"Success", Toast.LENGTH_SHORT).show();
-////                }else{
-////                    Toast.makeText(MainActivity.this,"Failed", Toast.LENGTH_SHORT).show();
-////                }
-//
-//            }
-//
-//            @Override
-//            public void onFailure(Call<MyResponse> call, Throwable throwable) {
-//                Log.e("ERROR", throwable.getMessage());
-//            }
-//        });
-
-        /*************************************************************/
-
 
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        LocalBroadcastManager.getInstance(MainActivity.this).registerReceiver(broadcastReceiver, new IntentFilter("NOW"));
+    }
+
+    private BroadcastReceiver broadcastReceiver= new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            Log.d("LOCATION",intent.getDoubleExtra("lat",0)+" : "+intent.getDoubleExtra("long",0));
+            mLocation.setLatitude(intent.getDoubleExtra("lat",0));
+            mLocation.setLongitude(intent.getDoubleExtra("long",0));
+            addLocation();
+
+        }
+    };
+
+
+    /*Callback result of permissions check*/
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (PermissionManager.onRequestPermissionsResult(requestCode, permissions, grantResults, this, getApplicationContext())) {
+            startService(locationIntent);
+        }
+    }
+
 
     /*
      * Called to subscribed in topic or check if the device is subscribed in topic.
      */
-
     private void subscribeTopicFirebase() {
-
         FirebaseMessaging.getInstance().subscribeToTopic(topic)
                 .addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
@@ -315,45 +299,6 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
-
-    /**
-     * Util of Android to pick an Gmail user account stored in the device.
-     */
-    private void showGoogleAccountPicker() {
-        Intent googlePicker = AccountPicker.newChooseAccountIntent(null, null,
-                new String[]{GoogleAuthUtil.GOOGLE_ACCOUNT_TYPE}, true, null, null, null, null);
-        startActivityForResult(googlePicker, PICK_ACCOUNT_REQUEST);
-    }
-
-    /**
-     * Called when showGoogleAccountPicker finish and return the String with the username to be registered.
-     */
-    @Override
-    public void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
-        if (requestCode == PICK_ACCOUNT_REQUEST && resultCode == MainActivity.RESULT_OK) {
-            nHelper.registerUser(data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME));
-            //mTextViewEmail.setText("User: " + data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME));
-        }
-    }
-
-    /**
-     * Update the variable mLocation with the location using the Nimbees Location service.
-     */
-    private void getLocation() {
-        NimbeesLocationManager.NimbeesLocationListener mNimbeesLocationListener = new NimbeesLocationManager.NimbeesLocationListener() {
-            @Override
-            public void onGetCurrentLocation(Location location) {
-                mLocation = location;
-                setUpMap();
-            }
-
-            @Override
-            public void onError(NimbeesException e) {
-            }
-        };
-        NimbeesClient.getLocationManager().obtainCurrentLocation(mNimbeesLocationListener);
-    }
-
     /**
      * Initial configuration of the map with the actual location of the user.
      */
@@ -363,6 +308,11 @@ public class MainActivity extends AppCompatActivity {
         // Set map type
         mGoogleMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
         // If we cant find the location now, we call a Network Provider location
+       // addLocation();
+
+    }
+
+    private void addLocation(){
         if (mLocation != null) {
             // Create a LatLng object for the current location
             LatLng latLng = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
@@ -400,53 +350,37 @@ public class MainActivity extends AppCompatActivity {
         mCircle = mGoogleMap.addCircle(mCircleOptions);
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        NimbeesClient.getPermissionManager().onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+    public void setStartDate(int year, int month, int day) {
+        this.startYear = year;
+        this.startMonth = month;
+        this.startDay = day;
     }
 
-    public void setStartDate(int year, int month, int day){
-        this.startYear=year;
-        this.startMonth=month;
-        this.startDay=day;
+    public void setEndDate(int year, int month, int day) {
+        this.endYear = year;
+        this.endMonth = month;
+        this.endDay = day;
     }
 
-    public void setEndDate(int year, int month, int day){
-        this.endYear=year;
-        this.endMonth=month;
-        this.endDay=day;
+    public void setStartTime(int hour, int minute) {
+        this.startHour = hour;
+        this.startMinute = minute;
     }
 
-    public void setStartTime(int hour, int minute){
-        this.startHour=hour;
-        this.startMinute=minute;
-    }
-
-    public void setEndTime(int hour, int minute){
-        this.endHour=hour;
-        this.endMinute=minute;
+    public void setEndTime(int hour, int minute) {
+        this.endHour = hour;
+        this.endMinute = minute;
     }
 
 
-    public void getHeatMap(){
+    public void getHeatMap() {
         LocationManager.clearLocations();
-        if ( tileOverlay != null){
+        if (tileOverlay != null) {
             tileOverlay.remove();
         }
 
-        EditText editLatitude = (EditText)findViewById(R.id.editLatitude);
-
-        mLocation.setLatitude(Double.parseDouble(editLatitude.getText().toString()));
-
-        EditText editLongitude = (EditText)findViewById(R.id.editLongitude);
-        mLocation.setLongitude(Double.parseDouble(editLongitude.getText().toString()));
-
-        EditText editRadius = (EditText)findViewById(R.id.editRadius);
-        RADIUS = Integer.parseInt(editRadius.getText().toString());
-
-        LocationManager.clearLocations();
-
-        if(endYear!=0 && startYear!=0){
+        if (endYear != 0 && startYear != 0) {
             Calendar calendar = Calendar.getInstance();
             calendar.clear();
             calendar.set(Calendar.YEAR, startYear);
@@ -466,14 +400,13 @@ public class MainActivity extends AppCompatActivity {
             Date endDate = calendar.getTime();
 
 
-
-            if(startDate.before(endDate)) {
+            if (startDate.before(endDate)) {
                 nHelper.sendRequestLocationMessage(token, RADIUS, mLocation, startDate, endDate);
 
                 LocationManager.mapFinishedFlag = false;
                 Log.e("HEATMAP", "MensajeSend");
 
-                final ProgressDialog progressDialog = new ProgressDialog (MainActivity.this);
+                final ProgressDialog progressDialog = new ProgressDialog(MainActivity.this);
                 progressDialog.setTitle("HeatMap");
                 progressDialog.setMessage("Getting users' locations..."); // Setting Message
                 progressDialog.setCancelable(false);
@@ -482,69 +415,28 @@ public class MainActivity extends AppCompatActivity {
                 Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
                     public void run() {
-                        List<LocationFrequency> locations= LocationManager.getLocations();
-                        Log.e("HEAT","locs="+locations.size());
-                        List<WeightedLatLng> points= new ArrayList<WeightedLatLng>();
-                        for(LocationFrequency location:locations){
-                            points.add(new WeightedLatLng(new LatLng(location.getLatitude(), location.getLongitude()),location.getFrequency()));
+                        List<LocationFrequency> locations = LocationManager.getLocations();
+                        Log.e("HEAT", "locs=" + locations.size());
+                        List<WeightedLatLng> points = new ArrayList<WeightedLatLng>();
+                        for (LocationFrequency location : locations) {
+                            points.add(new WeightedLatLng(new LatLng(location.getLatitude(), location.getLongitude()), location.getFrequency()));
                         }
-                        if(points.size()>0) {
+                        if (points.size() > 0) {
                             HeatmapTileProvider mProvider = new HeatmapTileProvider.Builder()
                                     .weightedData(points)
                                     .build();
-                            /*tileOverlay = MainActivity.this.mGoogleMap.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
+                            tileOverlay = MainActivity.this.mGoogleMap.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
                             if (mCircle != null) {
                                 mCircle.remove();
-                            }*/
-
-                            TableLayout inflate = (TableLayout) MainActivity.this.findViewById(R.id.tblLocations);
-                            TableRow row;
-                            TextView col1, col2, col3;
-
-                            row = new TableRow(MainActivity.this);
-                            col1 = new TextView(MainActivity.this);
-                            col1.setText("Latitude"+ "      ");
-                            row.addView(col1);
-
-                            col2 = new TextView(MainActivity.this);
-                            col2.setText("Longitude "+ "      ");
-                            row.addView(col2);
-
-                            col3 = new TextView(MainActivity.this);
-                            col3.setText("Frequency "+ "      ");
-                            row.addView(col3);
-
-                            inflate.addView(row);
-
-
-                            for(LocationFrequency location:locations){
-
-                                Log.w("HEATMAP: ", "Point. Latitude " + location.getLatitude() + " Longitude: " + location.getLongitude() + "Frequency: " +location.getFrequency());
-
-                                row = new TableRow(MainActivity.this);
-                                col1 = new TextView(MainActivity.this);
-                                col1.setText(location.getLatitude().toString() + "      ");
-                                row.addView(col1);
-
-                                col2 = new TextView(MainActivity.this);
-                                col2.setText(location.getLongitude().toString()+ "      ");
-                                row.addView(col2);
-
-                                col3 = new TextView(MainActivity.this);
-                                col3.setText(location.getFrequency().toString());
-                                row.addView(col3);
-
-                                inflate.addView(row);
-
                             }
+
                         }
                         progressDialog.dismiss();
                     }
                 }, 20000);
-            }
-            else{
+            } else {
                 Log.e("HEATMAP", "End date is before star date");
-                SnackBar snackbar = new SnackBar(MainActivity.this, "Start date should be before end date", "ok",new View.OnClickListener() {
+                SnackBar snackbar = new SnackBar(MainActivity.this, "Start date should be before end date", "ok", new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         // Handle user action
@@ -552,10 +444,9 @@ public class MainActivity extends AppCompatActivity {
                 });
                 snackbar.show();
             }
-        }
-        else{
+        } else {
             Log.e("HEATMAP", "No dates");
-            SnackBar snackbar = new SnackBar(MainActivity.this, "Please select the dates first", "ok",new View.OnClickListener() {
+            SnackBar snackbar = new SnackBar(MainActivity.this, "Please select the dates first", "ok", new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     // Handle user action

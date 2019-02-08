@@ -1,7 +1,6 @@
 package es.unex.geoapp.messagemanager;
 
-import com.nimbees.platform.NimbeesClient;
-import com.nimbees.platform.beans.NimbeesLocation;
+
 
 import java.util.List;
 

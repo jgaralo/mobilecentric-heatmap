@@ -1,11 +1,11 @@
-package es.unex.geoapp.retrofit;
+package es.unex.geoapp.firebase;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
 import java.util.List;
 
-public class MyResponse {
+public class FirebaseResponse {
 
     @SerializedName("multicast_id")
     @Expose
@@ -23,10 +23,18 @@ public class MyResponse {
     @Expose
     public List<Result> results;
 
-    public MyResponse(){
+    public class Result {
+
+        @SerializedName("message_id")
+        @Expose
+        public String messageId;
+
     }
 
-    public MyResponse(Integer multicastId, Integer success, Integer failure, Integer canonicalIds, List<Result> results) {
+    public FirebaseResponse() {
+    }
+
+    public FirebaseResponse(Integer multicastId, Integer success, Integer failure, Integer canonicalIds, List<Result> results) {
         this.multicastId = multicastId;
         this.success = success;
         this.failure = failure;

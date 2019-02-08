@@ -1,34 +1,33 @@
-package es.unex.geoapp.retrofit;
+package es.unex.geoapp.firebase;
 
-import android.location.Location;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
-import java.util.Date;
-import java.util.List;
-
-import es.unex.geoapp.messagemanager.NotificationKind;
 import es.unex.geoapp.messagemanager.RequestLocationMessage;
 import es.unex.geoapp.messagemanager.SendLocationsMessage;
-import es.unex.geoapp.model.LocationFrequency;
 
-public class NotificationFirebase {
+/*
+ *In this class, define the content of the Firebase Cloud Messaging body request.
+ */
+
+public class FirebaseData {
+
 
     @SerializedName("requestLocation")
     @Expose
     public RequestLocationMessage request;
 
+
     @SerializedName("sendLocation")
     @Expose
     public SendLocationsMessage reply;
 
-
-    public NotificationFirebase(RequestLocationMessage request) {
+    public FirebaseData(RequestLocationMessage request) {
         this.request = request;
     }
 
-    public NotificationFirebase(SendLocationsMessage reply) {
+    public FirebaseData(SendLocationsMessage reply) {
         this.reply = reply;
     }
 
@@ -36,11 +35,10 @@ public class NotificationFirebase {
         return request;
     }
 
-    public SendLocationsMessage getReply(){return reply;}
+    public SendLocationsMessage getReply() {
+        return reply;
+    }
 
-    /*******/
-
-    /**Notification Sender**/
 
 }
 

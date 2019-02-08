@@ -5,7 +5,7 @@ package es.unex.geoapp.messagemanager;
  */
 
 public class LocationMessage {
-    /** Id of the user in nimBees*/
+    /** Token of Firebase for after reply*/
     String senderId;
 
     NotificationKind kind;

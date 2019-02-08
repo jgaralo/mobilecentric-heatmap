@@ -2,7 +2,7 @@ package es.unex.geoapp.locationmanager;
 
 import android.graphics.PointF;
 
-import com.nimbees.platform.beans.NimbeesLocation;
+
 
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
@@ -28,9 +28,6 @@ public class LocationManager {
     public static boolean mapFinishedFlag = true;
 
     public static List<LocationFrequency> getLocationHistory(Date begin, Date end, double latitude, double longitude, double radius){
-
-        /*List <LocationFrequency> locs = aggreateLocations(
-                filterLocation(convertNimbeesLocations(NimbeesClient.getLocationManager().getLocationHistory(begin, end)), latitude, longitude, radius));*/
 
         List <LocationFrequency> locs = aggreateLocations(
                 filterLocation(convertLocations(getLocationHistory(begin, end)), latitude, longitude, radius));
@@ -70,17 +67,6 @@ public class LocationManager {
         }
         return locs;
     }
-
-    public static List <LocationFrequency> convertNimbeesLocations (List<NimbeesLocation> nimLocs){
-        List <LocationFrequency> locationFreqs = new ArrayList<LocationFrequency>();
-        for (NimbeesLocation nimLoc: nimLocs ) {
-            LocationFrequency lFrequency = new LocationFrequency(nimLoc.getLatitude(), nimLoc.getLongitude(), 1);
-            //Log.e("HEATMAP", nimLoc.getLatitude() + " " + nimLoc.getLongitude() + " " + nimLoc.getStartDate()+ " " + nimLoc.getEndDate());
-            locationFreqs.add(lFrequency);
-        }
-        return locationFreqs;
-    }
-
 
 
     public static List<LocationFrequency> filterLocation(List<LocationFrequency> locations, double latitude, double longitude, double radius) {

@@ -9,7 +9,7 @@ android {
     defaultConfig {
         applicationId "es.unex.geoapp"
         minSdkVersion 21
-        targetSdkVersion 25
+        targetSdkVersion 26
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
@@ -27,10 +27,8 @@ dependencies {
     androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
-    compile(name: 'nimBees-platform-1.5.2', ext: 'aar') {
-        transitive = true
-    }
-    compile 'com.android.support:appcompat-v7:25.3.1'
+
+    compile 'com.android.support:appcompat-v7:26.1.0'
     testCompile 'junit:junit:4.12'
     compile 'com.google.android.gms:play-services-gcm:16.0.0'
     compile 'com.google.android.gms:play-services-maps:16.0.0'
@@ -38,7 +36,7 @@ dependencies {
     compile 'com.google.android.gms:play-services-auth:16.0.1'
     compile 'com.google.android.gms:play-services-location:16.0.0'
     compile 'com.github.navasmdc:MaterialDesign:1.5@aar'
-    compile 'com.android.support:support-v4:25.3.1'
+    compile 'com.android.support:support-v4:26.1.0'
     compile 'com.nineoldandroids:library:2.4.0'
 
     //To view the Realm database

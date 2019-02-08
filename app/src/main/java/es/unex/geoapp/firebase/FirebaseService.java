@@ -1,40 +1,19 @@
 package es.unex.geoapp.firebase;
 
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.content.Context;
-import android.content.Intent;
-import android.graphics.Color;
-import android.os.Build;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.TaskStackBuilder;
-import android.util.Log;
-
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import org.json.JSONObject;
-
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
-import es.unex.geoapp.MainActivity;
-import es.unex.geoapp.R;
+import android.util.Log;
+
 import es.unex.geoapp.locationmanager.LocationManager;
-import es.unex.geoapp.messagemanager.LocationMessage;
 import es.unex.geoapp.messagemanager.NotificationHelper;
-import es.unex.geoapp.messagemanager.NotificationKind;
-import es.unex.geoapp.messagemanager.RequestLocationMessage;
-import es.unex.geoapp.messagemanager.SendLocationsMessage;
 import es.unex.geoapp.model.LocationFrequency;
-import es.unex.geoapp.retrofit.NotificationFirebase;
 
 public class FirebaseService extends FirebaseMessagingService {
 
@@ -43,40 +22,35 @@ public class FirebaseService extends FirebaseMessagingService {
     public FirebaseService() {
     }
 
-
     @Override
     public void onNewToken(String s) {
         super.onNewToken(s);
-        Log.d("TOKEN FIREBASE", s);
+        Log.d("Firebase Token", s);
     }
-
 
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
         String TAG = "FirebaseService: ";
-        // Not getting messages here? See why this may be: https://goo.gl/39bRNJ
-        Log.d(TAG, "From: " + remoteMessage.getFrom());
 
         // Check if message contains a data payload.
         if (remoteMessage.getData().size() > 0) {
-            //showNotification(remoteMessage.getData().get("title"), remoteMessage.getData().get("msg"));
 
             Map<String, String> data = remoteMessage.getData();
 
-            NotificationFirebase notification = gson.fromJson(String.valueOf(data), NotificationFirebase.class);
+            FirebaseData notification = gson.fromJson(String.valueOf(data), FirebaseData.class);
 
+            //Check the type of message
             if (notification.getRequest() != null) {
                 processRequest(notification);
-                Log.e("HEATMAP", "Locations received from sender.");
+                Log.e(TAG, "Locations received from sender.");
 
             } else {
                 if (notification.getReply() != null) {
-                    Log.e("HEATMAP", "Reply received.");
+                    Log.e(TAG, "Reply received.");
                     processReply(notification);
 
-
                 } else {
-                    Log.e("HEATMAP", "Another kind of message: ");
+                    Log.e(TAG, "Another kind of message: ");
                 }
 
             }
@@ -85,11 +59,11 @@ public class FirebaseService extends FirebaseMessagingService {
 
     }
 
-    private void processReply(NotificationFirebase notification) {
+    private void processReply(FirebaseData notification) {
         LocationManager.storeLocations(notification.getReply().getLocationList());
     }
 
-    private void processRequest(NotificationFirebase notification) {
+    private void processRequest(FirebaseData notification) {
         List<LocationFrequency> locations = LocationManager.getLocationHistory(notification.getRequest().getBeginDate(), notification.getRequest().getEndDate(), notification.getRequest().getLatitude(), notification.getRequest().getLongitude(), notification.getRequest().getRadius());
         List<List<LocationFrequency>> locationLists = partition(locations, 25);
 
@@ -106,29 +80,4 @@ public class FirebaseService extends FirebaseMessagingService {
         return lists;
     }
 
-    private void showNotification(String title, String body) {
-
-        //Intent to open APP when click in the notification.
-        Intent resultIntent = new Intent(this, MainActivity.class);
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-        stackBuilder.addNextIntentWithParentStack(resultIntent);
-        PendingIntent resultPendingIntent =
-                stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
-
-
-        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        String NOTIFICATION_CHANNEL_ID = "1";
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, "Notification", NotificationManager.IMPORTANCE_DEFAULT);
-            notificationChannel.setDescription("Android Server");
-            notificationChannel.enableLights(true);
-            notificationChannel.setLightColor(Color.BLUE);
-            notificationManager.createNotificationChannel(notificationChannel);
-        }
-
-        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID);
-        notificationBuilder.setAutoCancel(true).setDefaults(Notification.DEFAULT_ALL).setContentIntent(resultPendingIntent).setWhen(System.currentTimeMillis()).setSmallIcon(R.drawable.common_full_open_on_phone).setContentTitle(title).setContentText(body);
-        notificationManager.notify((new Random().nextInt()), notificationBuilder.build());
-    }
 }

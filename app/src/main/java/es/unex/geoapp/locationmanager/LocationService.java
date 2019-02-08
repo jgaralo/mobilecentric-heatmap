@@ -4,6 +4,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -17,12 +18,6 @@ import es.unex.geoapp.model.LocationBeanRealm;
 import es.unex.geoapp.model.LocationBeanRealmModule;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
-/*
-import okhttp3.ResponseBody;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-*/
 
 /**
  * Created by Javier on 18/10/2017.
@@ -46,6 +41,7 @@ public class LocationService extends Service {
     private Realm realm;
 
     private boolean startRealm;
+
 
     @Override
     public void onCreate() {
@@ -72,6 +68,9 @@ public class LocationService extends Service {
         if (gps == null) {
             gps = new GPSTracker(this);
         }
+
+        sendLocation();
+
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
@@ -82,6 +81,14 @@ public class LocationService extends Service {
 
         // If we get killed, after returning from here, restart
         return START_REDELIVER_INTENT;
+    }
+
+    private void sendLocation() {
+        Intent intent = new Intent();
+        intent.putExtra("lat", gps.getLatitude());
+        intent.putExtra("long",gps.getLongitude());
+        intent.setAction("NOW");
+        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
     }
 
     @Override
@@ -129,8 +136,9 @@ public class LocationService extends Service {
 
         if (gps.canGetLocation()) {
 
+
             // Store the location in the Realm database
-            Realm realm= Realm.getDefaultInstance();
+            Realm realm = Realm.getDefaultInstance();
             realm.beginTransaction();
 
             LocationBeanRealm lbr = realm.createObject(LocationBeanRealm.class);
@@ -142,6 +150,8 @@ public class LocationService extends Service {
             realm.commitTransaction();
 
             Log.i("HEATMAP-LBR", lbr.toString());
+
+
 
         } else {
             //gps.showSettingsAlert();

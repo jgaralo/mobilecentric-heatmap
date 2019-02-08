@@ -4,25 +4,19 @@ import android.location.Location;
 
 import android.util.Log;
 import android.widget.ArrayAdapter;
-import android.widget.Toast;
 
 
-import com.nimbees.platform.NimbeesClient;
-import com.nimbees.platform.NimbeesException;
-import com.nimbees.platform.callbacks.NimbeesRegistrationCallback;
-
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import es.gloin.nimbees.common.beans.notifications.filters.PastLocationFilter;
+
 import es.unex.geoapp.MainActivity;
+import es.unex.geoapp.firebase.FirebaseSender;
 import es.unex.geoapp.model.LocationFrequency;
 import es.unex.geoapp.retrofit.APIService;
 import es.unex.geoapp.retrofit.Common;
-import es.unex.geoapp.retrofit.MyResponse;
-import es.unex.geoapp.retrofit.NotificationFirebase;
-import es.unex.geoapp.retrofit.Sender;
+import es.unex.geoapp.firebase.FirebaseResponse;
+import es.unex.geoapp.firebase.FirebaseData;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -43,8 +37,14 @@ public class NotificationHelper {
      */
     public ArrayAdapter<String> mNotificationArrayAdapter;
 
+    /**
+     * Parameter for send the Firebase message in a topic.
+     */
     private static String topicURL = "/topics/heatmap";
 
+    /**
+     * Class to make the POST request.
+     */
     private static APIService apiService;
 
     /**
@@ -56,28 +56,6 @@ public class NotificationHelper {
         this.mMainActivity = act;
     }
 
-
-    /**
-     * Register the user in Nimbees.
-     */
-    public void registerUser(String username) {
-
-        NimbeesClient.getUserManager().register(username, new NimbeesRegistrationCallback() {
-            @Override
-            public void onSuccess() {
-                // The toast to show on the UI the message defined here
-                Toast.makeText(mMainActivity, "Register OK", Toast.LENGTH_SHORT).show();
-                Log.e("HEATMAP", "User registered for the reception of push notifications");
-            }
-
-            @Override
-            public void onFailure(NimbeesException e) {
-                Toast.makeText(mMainActivity, "Register Error", Toast.LENGTH_SHORT).show();
-                Log.e("HEATMAP", "ERROR registering the user for receiving push notifications");
-
-            }
-        });
-    }
 
     /**
      * This method send the message with the given radius and dates.
@@ -92,53 +70,20 @@ public class NotificationHelper {
             return;
         }
 
-        // The list of filters, by default we only add a past location filter with the requested locations
-        List<Object> filters = new ArrayList();
-        PastLocationFilter pastLocationFilter = new PastLocationFilter(location.getLatitude(), location.getLongitude(),
-                (double) radius, beginDate, endDate);
-        filters.add(pastLocationFilter);
-
-//        //We need to create a custom message , the steps are :
-//        // 1. We create a instance of message with the information.
-//        RequestLocationMessage requestLocation = new RequestLocationMessage(NimbeesClient.getUserManager().getUserData().getAlias(), beginDate, endDate, location.getLatitude(), location.getLongitude(), radius);
-//
-//        // 2. We convert the instance to a Json using Gson ( wich produces a String Json format).
-//        Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").create();
-//        String requestLocationMsg = gson.toJson(requestLocation, RequestLocationMessage.class);
-//
-//        // 3. Now we send the Json formed String to the method sendMessage.
-//        NimbeesClient.getNotificationManager()
-//                //.sendNotification(requestLocationMsg, MessageContent.NotificationType.CUSTOM, filters,
-//                .sendNotification(requestLocationMsg, MessageContent.NotificationType.CUSTOM, null,
-//                        new NimbeesCallback<Integer>() {
-//                            @Override
-//                            public void onSuccess(Integer integer) {
-//                                Toast.makeText(mMainActivity, "Request Location Sent! ", Toast.LENGTH_SHORT).show();
-//                                Log.e("HEATMAP", "Request Location Sent! ");
-//                            }
-//
-//                            @Override
-//                            public void onFailure(NimbeesException e) {
-//                                Toast.makeText(mMainActivity, "ERROR Requesting Location", Toast.LENGTH_SHORT).show();
-//                                Log.e("HEATMAP", "ERROR Requesting Location" + e.getMessage());
-//                            }
-//                        });
-
         /**Firebase**/
         //Send subscribed devices in the 'heatmap' topic.
         apiService = Common.getFCMClient();
-        apiService.sendNotification(new Sender(topicURL, new NotificationFirebase(new RequestLocationMessage(token, beginDate, endDate, location.getLatitude(),location.getLongitude(),radius)))).enqueue(new Callback<MyResponse>() {
+        apiService.sendNotification(new FirebaseSender(topicURL, new FirebaseData(new RequestLocationMessage(token, beginDate, endDate, location.getLatitude(), location.getLongitude(), radius)))).enqueue(new Callback<FirebaseResponse>() {
             @Override
-            public void onResponse(Call<MyResponse> call, Response<MyResponse> response) {
+            public void onResponse(Call<FirebaseResponse> call, Response<FirebaseResponse> response) {
                 Log.d("HEATMAP:", "Request Send");
             }
 
             @Override
-            public void onFailure(Call<MyResponse> call, Throwable throwable) {
+            public void onFailure(Call<FirebaseResponse> call, Throwable throwable) {
                 Log.e("ERROR", throwable.getMessage());
             }
         });
-        /***********/
 
 
     }
@@ -148,61 +93,24 @@ public class NotificationHelper {
      */
     public static void sendLocationsMessage(List<LocationFrequency> locations, String token) {
 
-        //The list of filters, by default we only add a past location filter with the requested locations
-//        List<Object> filters = new ArrayList();
-//        List<String> listRequesters = new ArrayList<>();
-//        listRequesters.add(token);
-//        UserNameListFilter usersFilter = new UserNameListFilter(listRequesters);
-//        filters.add(usersFilter);
-//
-//        //We need to create a custom message , the steps are :
-//        // 1. We create a instance of message with the information.
-//        SendLocationsMessage locationsMessage = new SendLocationsMessage(NimbeesClient.getUserManager().getUserData().getAlias(), locations);
-//
-//        // 2. We convert the instance to a Json using Gson ( wich produces a String Json format).
-//        String locationsMsg = new Gson().toJson(locationsMessage, SendLocationsMessage.class);
-//
-//        // 3. Now we send the Json formed String to the method sendMessage.
-//        NimbeesClient.getNotificationManager()
-//                //.sendNotification(locationsMsg, MessageContent.NotificationType.CUSTOM, filters,
-//                .sendNotification(locationsMsg, MessageContent.NotificationType.CUSTOM, null,
-//                        new NimbeesCallback<Integer>() {
-//                            @Override
-//                            public void onSuccess(Integer integer) {
-//                                Log.e("HEATMAP", "Locations sent");
-//                            }
-//
-//                            @Override
-//                            public void onFailure(NimbeesException e) {
-//                                Log.e("HEATMAP", "ERROR sending the locations");
-//                            }
-//                        });
 
         /**Firebase**/
 
         //Reply request
         apiService = Common.getFCMClient();
-        apiService.sendNotification(new Sender(token, new NotificationFirebase(new SendLocationsMessage(locations)))).enqueue(new Callback<MyResponse>() {
+        apiService.sendNotification(new FirebaseSender(token, new FirebaseData(new SendLocationsMessage(locations)))).enqueue(new Callback<FirebaseResponse>() {
             @Override
-            public void onResponse(Call<MyResponse> call, Response<MyResponse> response) {
-                if (response.body().success == 1) {
-                    //Toast.makeText(getCon,"Success", Toast.LENGTH_SHORT).show();
-                    Log.e("Success", " Reply send.");
-                } else {
-                    //Toast.makeText(MainActivity.this,"Failed", Toast.LENGTH_SHORT).show();
-                    Log.e("Failed", " Reply not send.");
-                }
+            public void onResponse(Call<FirebaseResponse> call, Response<FirebaseResponse> response) {
+
+                Log.e("Success", " Reply send.");
+
             }
 
             @Override
-            public void onFailure(Call<MyResponse> call, Throwable throwable) {
+            public void onFailure(Call<FirebaseResponse> call, Throwable throwable) {
                 Log.e("ERROR", throwable.getMessage());
             }
         });
-        /***********/
-
-        Log.e("Success", " Reply send.");
-
 
     }
 
