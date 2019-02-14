@@ -11,7 +11,7 @@ import retrofit2.http.POST;
 public interface APIService {
     @Headers({
             "Content-Type:application/json",
-            "Authorization:key=AAAAXKsK2vU:APA91bHoA6hUn6DrrRGI9TBSvA7Zft3SQ9QOuuCR7R84eK_oLWy7K0eFUEf6OaNLQfiZkV8owSUHImntDx3rpZ2PVjQr8MqYawoIFJiwOlRMUHwl8qGKOyiTZS_bfmPT2HDi-zuPgC2p"
+            "Authorization:key=AAAAOwspVRg:APA91bHKbnWAW_PXCXF02Q6hksxF1oXFWXW2dhSh5VxZ5TtIhzgAqVzpc8KvjD9dRyA3M_rCawKoqNdLsP8z3h1JKpphZ2hFf4TusMLWSXs9wzE6Ic6pom2hMY-u9M9G2rJ1MVQELRet"
     })
     @POST( "fcm/send")
     Call<FirebaseResponse> sendNotification(@Body FirebaseSender body);
