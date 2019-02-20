@@ -237,13 +237,14 @@ public class MainActivity extends AppCompatActivity {
         LocalBroadcastManager.getInstance(MainActivity.this).registerReceiver(broadcastReceiver, new IntentFilter("NOW"));
     }
 
-    private BroadcastReceiver broadcastReceiver= new BroadcastReceiver() {
+    /*Broadcast to receive location for adding in the map*/
+    private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
 
-            Log.d("LOCATION",intent.getDoubleExtra("lat",0)+" : "+intent.getDoubleExtra("long",0));
-            mLocation.setLatitude(intent.getDoubleExtra("lat",0));
-            mLocation.setLongitude(intent.getDoubleExtra("long",0));
+            Log.d("LOCATION", intent.getDoubleExtra("lat", 0) + " : " + intent.getDoubleExtra("long", 0));
+            mLocation.setLatitude(intent.getDoubleExtra("lat", 0));
+            mLocation.setLongitude(intent.getDoubleExtra("long", 0));
             addLocation();
 
         }
@@ -308,11 +309,12 @@ public class MainActivity extends AppCompatActivity {
         // Set map type
         mGoogleMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
         // If we cant find the location now, we call a Network Provider location
-       // addLocation();
+        // addLocation();
 
     }
 
-    private void addLocation(){
+    /*Add the red marker with the location*/
+    private void addLocation() {
         if (mLocation != null) {
             // Create a LatLng object for the current location
             LatLng latLng = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());

@@ -27,8 +27,8 @@ public class LocationService extends Service {
     /**
      * Seconds to send
      */
-    //long MILISECONDS_REFRESH = 50000;
-    long MILISECONDS_REFRESH = 5000;
+    long MILISECONDS_REFRESH = 50000;
+    //long MILISECONDS_REFRESH = 5000;
 
     private Timer timer;
 
@@ -83,6 +83,7 @@ public class LocationService extends Service {
         return START_REDELIVER_INTENT;
     }
 
+    /*Sends Location to Main for add the point in the map with location by broadcast*/
     private void sendLocation() {
         Intent intent = new Intent();
         intent.putExtra("lat", gps.getLatitude());
